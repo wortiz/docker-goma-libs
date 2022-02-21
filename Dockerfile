@@ -151,20 +151,27 @@ RUN apt-get -yqq update && apt-get -yqq upgrade \
 RUN apt-get autoremove -y
 RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/*
+RUN mkdir /opt/workdir
 
 
 # user setup
-ARG USER=goma
-RUN adduser --disabled-password --gecos '' $USER
-RUN adduser $USER sudo; echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-
-RUN chown -R $USER:$USER /home/$USER
-USER $USER
-ENV HOME /home/$USER
-ENV USER $USER
-ENV OMPI_MCA_btl "^vader"
+#ARG USER=goma
+#RUN adduser --disabled-password --gecos '' $USER
+#RUN adduser $USER sudo; echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+#
+#RUN chown -R $USER:$USER /home/$USER
+#USER $USER
+#ENV HOME /home/$USER
+#ENV USER $USER
+#ENV OMPI_MCA_btl "^vader"
+ENV OMPI_MCA_btl_base_warn_component_unuse "0"
+ENV PATH "/opt/view/bin:${PATH}"
+ENV LD_LIBRARY_PATH "/opt/view/lib:${LD_LIBRARY_PATH}"
+ENV CMAKE_PREFIX_PATH "/opt/view/lib:${CMAKE_PREFIX_PATH}"
+ENV OMPI_ALLOW_RUN_AS_ROOT 1
+ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM 1
 
 # use /home/goma as goma root
-WORKDIR $HOME
+WORKDIR /opt/workdir
 
-ENTRYPOINT ["/bin/bash", "--rcfile", "/etc/profile", "-l"]
+#ENTRYPOINT ["/bin/bash", "--rcfile", "/etc/profile", "-l"]
