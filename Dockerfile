@@ -1,4 +1,4 @@
-FROM ubuntu:20.04 as bootstrap
+FROM ubuntu:22.04 as bootstrap
 
 ENV SPACK_ROOT=/opt/spack \
     CURRENTLY_BUILDING_DOCKER_IMAGE=1 \
@@ -27,13 +27,15 @@ RUN apt-get -yqq update \
         python3 \
         python3-pip \
         python3-setuptools \
+        python3-dev \
         unzip \
+        bison \
  && locale-gen en_US.UTF-8 \
  && pip3 install boto3 \
  && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir $SPACK_ROOT && cd $SPACK_ROOT && \
-    git clone https://github.com/spack/spack.git . && git checkout e7894b4863b02cbb0bc2f905cad04908b045368f  && \
+    git clone https://github.com/spack/spack.git . && git checkout 35e5a916bcec9cdb450012dce9261c4eb3058319  && \
     mkdir -p $SPACK_ROOT/opt/spack
 
 RUN ln -s $SPACK_ROOT/share/spack/docker/entrypoint.bash \
@@ -83,12 +85,13 @@ RUN mkdir /opt/spack-environment \
 &&   echo "  - parmetis~int64" \
 &&   echo "  - hypre~int64" \
 &&   echo "  - mumps~openmp+metis+parmetis" \
-&&   echo "  - trilinos+amesos+amesos2+aztec+belos+boost~chaco+epetra+epetraext~exodus+explicit_template_instantiation+fortran+hdf5~hypre+ifpack+ifpack2+kokkos+ml+mpi+muelu+mumps+shared+stratimikos+suite-sparse+superlu-dist+teko+tpetra+zoltan+zoltan2 build_type=Release gotype=long_long" \
+&&   echo "  - trilinos+amesos+amesos2+aztec+belos+boost~chaco+epetra+epetraext~exodus+explicit_template_instantiation+fortran+hdf5~hypre+ifpack+ifpack2+kokkos+ml+mpi+muelu+mumps+shared+stratimikos+suite-sparse+superlu-dist+teko+tpetra~zoltan~zoltan2 build_type=Release gotype=long_long" \
 &&   echo "  - omega-h build_type=Release" \
-&&   echo "  - petsc~X~batch~cgns~complex~cuda~debug+double~exodusii~fftw~giflib+hdf5~hwloc+hypre~int64~jpeg~knl~libpng~libyaml~memkind+metis~mkl-pardiso~moab~mpfr+mpi+mumps~openmp+p4est+ptscotch~random123~rocm~saws+shared+suite-sparse~superlu-dist+trilinos" \
+&&   echo "  - petsc~X~batch~cgns~complex~cuda~debug+double~exodusii~fftw~giflib+hdf5~hwloc+hypre~int64~jpeg~knl~libpng~libyaml~memkind+metis~mkl-pardiso~moab~mpfr+mpi+mumps~openmp+p4est+ptscotch~random123~rocm~saws+shared+suite-sparse~superlu-dist~trilinos" \
 &&   echo "  - seacas" \
 &&   echo "  view: /opt/view" \
-&&   echo "  concretization: together" \
+&&   echo "  concretizer:" \
+&&   echo "    unify: true" \
 &&   echo "  packages:" \
 &&   echo "    all:" \
 &&   echo "      target:" \
@@ -112,7 +115,7 @@ RUN cd /opt/spack-environment && \
     spack env activate --sh -d . >> /etc/profile.d/z10_spack_environment.sh
 
 # Bare OS image to run the installed executables
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 
 COPY --from=builder /opt/spack-environment /opt/spack-environment
@@ -144,10 +147,11 @@ RUN apt-get -yqq update \
         python3 \
         python3-pip \
         python3-setuptools \
-        unzip 
+        unzip \
+        python3-dev
 RUN apt-get -yqq update && apt-get -yqq upgrade \
  && apt-get -yqq install \
-    bash git build-essential m4 zlib1g-dev libx11-dev gfortran locales wget coreutils curl sudo
+    bash git build-essential m4 zlib1g-dev libx11-dev gfortran locales wget coreutils curl sudo pkg-config clang-format
 RUN apt-get autoremove -y
 RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/*
