@@ -35,7 +35,7 @@ RUN apt-get -yqq update \
  && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir $SPACK_ROOT && cd $SPACK_ROOT && \
-    git clone https://github.com/spack/spack.git . && git checkout 35e5a916bcec9cdb450012dce9261c4eb3058319  && \
+    git clone https://github.com/spack/spack.git . && git checkout bb8b4f9979e87ae3fb63a3adcb768eda09e5b059  && \
     mkdir -p $SPACK_ROOT/opt/spack
 
 RUN ln -s $SPACK_ROOT/share/spack/docker/entrypoint.bash \
@@ -107,21 +107,62 @@ RUN mkdir /opt/spack-environment \
 # Install the software, remove unnecessary deps
 RUN cd /opt/spack-environment && \
     spack env activate . && \
-    spack install --fail-fast && \
-    spack gc -y
+    spack install --fail-fast
 
 # Modifications to the environment that are necessary to run
 RUN cd /opt/spack-environment && \
     spack env activate --sh -d . >> /etc/profile.d/z10_spack_environment.sh
 
+RUN mkdir /opt/spack-environment-complex \
+&&  (echo "spack:" \
+&&   echo "  specs:" \
+&&   echo "  - cmake" \
+&&   echo "  - sparse" \
+&&   echo "  - catch2" \
+&&   echo "  - openmpi" \
+&&   echo "  - arpack-ng" \
+&&   echo "  - metis~int64" \
+&&   echo "  - parmetis~int64" \
+&&   echo "  - hypre~int64" \
+&&   echo "  - mumps~openmp+metis+parmetis" \
+&&   echo "  - trilinos+amesos+amesos2+aztec+belos+boost~chaco+epetra+epetraext~exodus+explicit_template_instantiation+fortran+hdf5~hypre+ifpack+ifpack2+kokkos+ml+mpi+muelu+mumps+shared+stratimikos+suite-sparse+superlu-dist+teko+tpetra~zoltan~zoltan2 build_type=Release gotype=long_long" \
+&&   echo "  - omega-h build_type=Release" \
+&&   echo "  - petsc~X~batch~cgns+complex~cuda~debug+double~exodusii~fftw~giflib+hdf5~hwloc+hypre~int64~jpeg~knl~libpng~libyaml~memkind+metis~mkl-pardiso~moab~mpfr+mpi+mumps~openmp+p4est+ptscotch~random123~rocm~saws+shared+suite-sparse~superlu-dist~trilinos" \
+&&   echo "  - seacas" \
+&&   echo "  view: /opt/view-complex" \
+&&   echo "  concretizer:" \
+&&   echo "    unify: true" \
+&&   echo "  packages:" \
+&&   echo "    all:" \
+&&   echo "      target:" \
+&&   echo "      - x86_64_v2" \
+&&   echo "      providers:" \
+&&   echo "        blas:" \
+&&   echo "        - netlib-lapack" \
+&&   echo "        lapack:" \
+&&   echo "        - netlib-lapack" \
+&&   echo "  config:" \
+&&   echo "    install_tree: /opt/software") > /opt/spack-environment-complex/spack.yaml
+
+# Install the software, remove unnecessary deps
+RUN cd /opt/spack-environment-complex && \
+    spack env activate . && \
+    spack install --fail-fast && \
+    spack gc -y
+
+# Modifications to the environment that are necessary to run
+RUN cd /opt/spack-environment-complex && \
+    spack env activate --sh -d . >> /opt/activate-complex.sh
+
 # Bare OS image to run the installed executables
 FROM ubuntu:22.04
-
 
 COPY --from=builder /opt/spack-environment /opt/spack-environment
 COPY --from=builder /opt/software /opt/software
 COPY --from=builder /opt/view /opt/view
+COPY --from=builder /opt/view-complex /opt/view-complex
 COPY --from=builder /etc/profile.d/z10_spack_environment.sh /etc/profile.d/z10_spack_environment.sh
+COPY --from=builder /opt/activate-complex.sh /opt/activate-complex.sh
 
 RUN apt-get clean && apt-get update && apt-get install -y locales
 RUN locale-gen en_US.UTF-8  
@@ -136,6 +177,9 @@ RUN apt-get -yqq update \
         curl \
         file \
         g++ \
+        gdb \
+        valgrind \
+        vim \
         gcc \
         gfortran \
         git \
@@ -157,6 +201,10 @@ RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/*
 RUN mkdir /opt/workdir
 
+RUN echo 'PATH=/opt/view-complex:$PATH' >>/opt/activate-complex.sh
+RUN echo 'LD_LIBRARY_PATH=/opt/view-complex/lib:$LD_LIBRARY_PATH' >>/opt/activate-complex.sh
+RUN echo 'CMAKE_PREFIX_PATH=/opt/view-complex/lib:$CMAKE_PREFIX_PATH' >>/opt/activate-complex.sh
+RUN echo 'GOMA_LIBS=/opt/view-complex' >>/opt/activate-complex.sh
 
 # user setup
 #ARG USER=goma
@@ -169,6 +217,7 @@ RUN mkdir /opt/workdir
 #ENV USER $USER
 #ENV OMPI_MCA_btl "^vader"
 ENV OMPI_MCA_btl_base_warn_component_unuse "0"
+ENV GOMA_LIBS "/opt/view"
 ENV PATH "/opt/view/bin:${PATH}"
 ENV LD_LIBRARY_PATH "/opt/view/lib:${LD_LIBRARY_PATH}"
 ENV CMAKE_PREFIX_PATH "/opt/view/lib:${CMAKE_PREFIX_PATH}"
@@ -178,4 +227,4 @@ ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM 1
 # use /home/goma as goma root
 WORKDIR /opt/workdir
 
-#ENTRYPOINT ["/bin/bash", "--rcfile", "/etc/profile", "-l"]
+ENTRYPOINT /bin/bash --rcfile /etc/profile -l
