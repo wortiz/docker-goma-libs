@@ -124,7 +124,7 @@ RUN mkdir /opt/spack-environment-complex \
 &&   echo "  - parmetis~int64" \
 &&   echo "  - hypre~int64" \
 &&   echo "  - mumps~openmp+metis+parmetis" \
-&&   echo "  - trilinos+amesos+amesos2+aztec+belos+boost~chaco+epetra+epetraext~exodus+explicit_template_instantiation+fortran+hdf5~hypre+ifpack+ifpack2+kokkos+ml+mpi+muelu+mumps+shared+stratimikos+suite-sparse+superlu-dist+teko+tpetra~zoltan~zoltan2 build_type=Release gotype=long_long" \
+&&   echo "  - trilinos+amesos+amesos2+aztec+belos+boost~chaco+epetra+epetraext~exodus+explicit_template_instantiation+fortran+hdf5~hypre+ifpack+ifpack2+kokkos+ml+mpi+muelu+mumps+shared+stratimikos+suite-sparse+superlu-dist+teko+tpetra~zoltan~zoltan2 build_type=Release gotype=int" \
 &&   echo "  - omega-h build_type=Release" \
 &&   echo "  - petsc~X~batch~cgns+complex~cuda~debug+double~exodusii~fftw~giflib+hdf5~hwloc+hypre~int64~jpeg~knl~libpng~libyaml~memkind+metis~mkl-pardiso~moab~mpfr+mpi+mumps~openmp~p4est+ptscotch~random123~rocm~saws+shared+suite-sparse~superlu-dist~trilinos" \
 &&   echo "  - seacas" \
@@ -200,10 +200,11 @@ RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/*
 RUN mkdir /opt/workdir
 
-RUN echo 'PATH=/opt/view-complex:$PATH' >>/opt/activate-complex.sh
-RUN echo 'LD_LIBRARY_PATH=/opt/view-complex/lib:$LD_LIBRARY_PATH' >>/opt/activate-complex.sh
-RUN echo 'CMAKE_PREFIX_PATH=/opt/view-complex/lib:$CMAKE_PREFIX_PATH' >>/opt/activate-complex.sh
-RUN echo 'GOMA_LIBS=/opt/view-complex' >>/opt/activate-complex.sh
+RUN echo 'export PATH=/opt/view-complex:$PATH' >>/opt/activate-complex.sh
+RUN echo 'export PETSC_DIR=/opt/view-complex' >>/opt/activate-complex.sh
+RUN echo 'export LD_LIBRARY_PATH=/opt/view-complex/lib:$LD_LIBRARY_PATH' >>/opt/activate-complex.sh
+RUN echo 'export CMAKE_PREFIX_PATH=/opt/view-complex/lib:$CMAKE_PREFIX_PATH' >>/opt/activate-complex.sh
+RUN echo 'export GOMA_LIBS=/opt/view-complex' >>/opt/activate-complex.sh
 
 # user setup
 #ARG USER=goma
@@ -217,6 +218,7 @@ RUN echo 'GOMA_LIBS=/opt/view-complex' >>/opt/activate-complex.sh
 #ENV OMPI_MCA_btl "^vader"
 ENV OMPI_MCA_btl_base_warn_component_unuse "0"
 ENV GOMA_LIBS "/opt/view"
+ENV PETSC_DIR "/opt/view"
 ENV PATH "/opt/view/bin:${PATH}"
 ENV LD_LIBRARY_PATH "/opt/view/lib:${LD_LIBRARY_PATH}"
 ENV CMAKE_PREFIX_PATH "/opt/view/lib:${CMAKE_PREFIX_PATH}"
