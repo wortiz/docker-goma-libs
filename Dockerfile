@@ -35,7 +35,7 @@ RUN apt-get -yqq update \
  && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir $SPACK_ROOT && cd $SPACK_ROOT && \
-    git clone https://github.com/spack/spack.git . && git checkout 94a1d1414aa26fff55b55f1e9c93f342d12b6464  && \
+    git clone https://github.com/spack/spack.git . && git checkout 0e016ba6f5fd88b9889b8d7f313935005ba7929a  && \
     mkdir -p $SPACK_ROOT/opt/spack
 
 RUN ln -s $SPACK_ROOT/share/spack/docker/entrypoint.bash \
@@ -84,7 +84,7 @@ RUN mkdir /opt/spack-environment \
 &&   echo "  - parmetis~int64" \
 &&   echo "  - hypre~int64" \
 &&   echo "  - mumps~openmp+metis+parmetis" \
-&&   echo "  - trilinos@15.0.0+amesos+amesos2+aztec+belos+boost~chaco+epetra+epetraext~exodus+explicit_template_instantiation+fortran+hdf5~hypre+ifpack+ml+mpi+muelu+mumps+shared+stratimikos+suite-sparse+superlu-dist+teko+tpetra+piro+nox+tempus+shards+intrepid2+zoltan2+sacado+intrepid build_type=Release gotype=int" \
+&&   echo "  - trilinos+amesos+amesos2+aztec+belos+boost~chaco+epetra+epetraext~exodus+explicit_template_instantiation+fortran+hdf5~hypre+ifpack+ml+mpi+muelu+mumps+shared+stratimikos+suite-sparse+superlu-dist+teko+tpetra+piro+nox+tempus+shards+intrepid2+zoltan2+sacado+intrepid build_type=Release gotype=int" \
 &&   echo "  - omega-h build_type=Release" \
 &&   echo "  - petsc~X~batch~cgns~complex~cuda~debug+double~exodusii~fftw~giflib+hdf5~hwloc+hypre~int64~jpeg~knl~libpng~libyaml~memkind+metis~mkl-pardiso~moab~mpfr+mpi+mumps~openmp~p4est+ptscotch~random123~rocm~saws+shared+suite-sparse~superlu-dist~trilinos" \
 &&   echo "  - seacas" \
@@ -124,7 +124,7 @@ RUN mkdir /opt/spack-environment-complex \
 &&   echo "  - parmetis~int64" \
 &&   echo "  - hypre~int64" \
 &&   echo "  - mumps~openmp+metis+parmetis" \
-&&   echo "  - trilinos+amesos+amesos2+aztec+belos+boost~chaco+epetra+epetraext~exodus+explicit_template_instantiation+fortran+hdf5~hypre+ifpack+ifpack2+kokkos+ml+mpi+muelu+mumps+shared+stratimikos+suite-sparse+superlu-dist+teko+tpetra~zoltan~zoltan2 build_type=Release gotype=int" \
+&&   echo "  - trilinos+amesos+amesos2+aztec+belos+boost~chaco+epetra+epetraext~exodus+explicit_template_instantiation+fortran+hdf5~hypre+ifpack+ml+mpi+muelu+mumps+shared+stratimikos+suite-sparse+superlu-dist+teko+tpetra+piro+nox+tempus+shards+intrepid2+zoltan2+sacado+intrepid build_type=Release gotype=int" \
 &&   echo "  - omega-h build_type=Release" \
 &&   echo "  - petsc~X~batch~cgns+complex~cuda~debug+double~exodusii~fftw~giflib+hdf5~hwloc+hypre~int64~jpeg~knl~libpng~libyaml~memkind+metis~mkl-pardiso~moab~mpfr+mpi+mumps~openmp~p4est+ptscotch~random123~rocm~saws+shared+suite-sparse~superlu-dist~trilinos" \
 &&   echo "  - seacas" \
@@ -227,5 +227,3 @@ ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM 1
 
 # use /home/goma as goma root
 WORKDIR /opt/workdir
-
-ENTRYPOINT /bin/bash --rcfile /etc/profile -l
