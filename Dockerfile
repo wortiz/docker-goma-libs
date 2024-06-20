@@ -1,7 +1,6 @@
 # Build stage with Spack pre-installed and ready to be used
 FROM spack/ubuntu-jammy:develop as builder
 
-
 # What we want to install and how we want to install it
 # is specified in a manifest file (spack.yaml)
 RUN mkdir -p /opt/spack-environment && \
@@ -115,7 +114,36 @@ RUN { \
 && chmod a+x /entrypoint.sh \
 && ln -s /opt/views/view /opt/view
 
+#RUN adduser --disabled-password --gecos '' $USER
+#RUN adduser $USER sudo; echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+#
+#RUN chown -R $USER:$USER /home/$USER
+#USER $USER
+#ENV HOME /home/$USER
+#ENV USER $USER
+#ENV OMPI_MCA_btl "^vader"
+ENV OMPI_MCA_btl_base_warn_component_unuse "0"
+ENV OMPI_ALLOW_RUN_AS_ROOT 1
+ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM 1
+ENV SPACK_ENV=/opt/spack-environment;
+ENV SPACK_ENV_VIEW=default;
+ENV ACLOCAL_PATH=/opt/views/view/share/aclocal;
+ENV BOOST_ROOT=/opt/views/view;
+ENV CMAKE_PREFIX_PATH=/opt/views/view;
+ENV HDF5_PLUGIN_PATH=/opt/views/view/plugins;
+ENV LD_LIBRARY_PATH=/opt/views/view/lib;
+ENV MANPATH=/opt/views/view/share/man:/opt/views/view/man:/usr/share/man:;
+ENV MPICC=/opt/views/view/bin/mpicc;
+ENV MPICXX=/opt/views/view/bin/mpic++;
+ENV MPIF77=/opt/views/view/bin/mpif77;
+ENV MPIF90=/opt/views/view/bin/mpif90;
+ENV MPIFC=/opt/views/view/bin/mpifort;
+ENV PATH=/opt/views/view/bin:/opt/spack/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin;
+ENV PETSC_ARCH="";
+ENV PETSC_DIR=/opt/views/view;
+ENV PKG_CONFIG_PATH=/opt/views/view/lib/pkgconfig:/opt/views/view/share/pkgconfig:/opt/views/view/lib64/pkgconfig;
+ENV PYTHONPATH=/opt/views/view/lib:/opt/views/view/lib/python3.11/site-packages;
+ENV XLOCALEDIR=/opt/views/view/share/X11/locale;
 
 ENTRYPOINT [ "/entrypoint.sh" ]
 CMD [ "/bin/bash" ]
-
