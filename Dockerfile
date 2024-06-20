@@ -1,229 +1,121 @@
-FROM ubuntu:22.04 as bootstrap
-
-ENV SPACK_ROOT=/opt/spack \
-    CURRENTLY_BUILDING_DOCKER_IMAGE=1 \
-    container=docker
-
-ENV DEBIAN_FRONTEND=noninteractive   \
-    LANGUAGE=en_US.UTF-8 \
-    LANG=en_US.UTF-8 \
-    LC_ALL=en_US.UTF-8
-
-RUN apt-get -yqq update \
- && apt-get -yqq install --no-install-recommends \
-        build-essential \
-        ca-certificates \
-        curl \
-        file \
-        g++ \
-        gcc \
-        gfortran \
-        git \
-        gnupg2 \
-        iproute2 \
-        locales \
-        lua-posix \
-        make \
-        python3 \
-        python3-pip \
-        python3-setuptools \
-        python3-dev \
-        unzip \
-        bison \
- && locale-gen en_US.UTF-8 \
- && pip3 install boto3 \
- && rm -rf /var/lib/apt/lists/*
-
-RUN mkdir $SPACK_ROOT && cd $SPACK_ROOT && \
-    git clone https://github.com/spack/spack.git . && git checkout 0e016ba6f5fd88b9889b8d7f313935005ba7929a  && \
-    mkdir -p $SPACK_ROOT/opt/spack
-
-RUN ln -s $SPACK_ROOT/share/spack/docker/entrypoint.bash \
-          /usr/local/bin/docker-shell \
- && ln -s $SPACK_ROOT/share/spack/docker/entrypoint.bash \
-          /usr/local/bin/interactive-shell \
- && ln -s $SPACK_ROOT/share/spack/docker/entrypoint.bash \
-          /usr/local/bin/spack-env
-
-RUN mkdir -p /root/.spack \
- && cp $SPACK_ROOT/share/spack/docker/modules.yaml \
-        /root/.spack/modules.yaml \
- && rm -rf /root/*.* /run/nologin $SPACK_ROOT/.git
-
-# [WORKAROUND]
-# https://superuser.com/questions/1241548/
-#     xubuntu-16-04-ttyname-failed-inappropriate-ioctl-for-device#1253889
-RUN [ -f ~/.profile ]                                               \
- && sed -i 's/mesg n/( tty -s \\&\\& mesg n || true )/g' ~/.profile \
- || true
-
-
-WORKDIR /root
-SHELL ["docker-shell"]
-
-# Creates the package cache
-RUN spack spec hdf5+mpi
-
-ENTRYPOINT ["/bin/bash", "/opt/spack/share/spack/docker/entrypoint.bash"]
-CMD ["interactive-shell"]
-
 # Build stage with Spack pre-installed and ready to be used
-FROM bootstrap as builder
+FROM spack/ubuntu-jammy:develop as builder
+
 
 # What we want to install and how we want to install it
 # is specified in a manifest file (spack.yaml)
-RUN mkdir /opt/spack-environment \
-&&  (echo "spack:" \
-&&   echo "  specs:" \
-&&   echo "  - cmake" \
-&&   echo "  - sparse" \
-&&   echo "  - catch2" \
-&&   echo "  - openmpi" \
-&&   echo "  - arpack-ng" \
-&&   echo "  - metis~int64" \
-&&   echo "  - parmetis~int64" \
-&&   echo "  - hypre~int64" \
-&&   echo "  - mumps~openmp+metis+parmetis" \
-&&   echo "  - trilinos+amesos+amesos2+aztec+belos+boost~chaco+epetra+epetraext~exodus+explicit_template_instantiation+fortran+hdf5~hypre+ifpack+ml+mpi+muelu+mumps+shared+stratimikos+suite-sparse+superlu-dist+teko+tpetra+piro+nox+tempus+shards+intrepid2+zoltan2+sacado+intrepid build_type=Release gotype=int" \
-&&   echo "  - omega-h build_type=Release" \
-&&   echo "  - petsc~X~batch~cgns~complex~cuda~debug+double~exodusii~fftw~giflib+hdf5~hwloc+hypre~int64~jpeg~knl~libpng~libyaml~memkind+metis~mkl-pardiso~moab~mpfr+mpi+mumps~openmp~p4est+ptscotch~random123~rocm~saws+shared+suite-sparse~superlu-dist~trilinos" \
-&&   echo "  - seacas" \
-&&   echo "  view: /opt/view" \
-&&   echo "  concretizer:" \
-&&   echo "    unify: true" \
-&&   echo "  packages:" \
-&&   echo "    all:" \
-&&   echo "      target:" \
-&&   echo "      - x86_64_v2" \
-&&   echo "      providers:" \
-&&   echo "        blas:" \
-&&   echo "        - netlib-lapack" \
-&&   echo "        lapack:" \
-&&   echo "        - netlib-lapack" \
-&&   echo "  config:" \
-&&   echo "    install_tree: /opt/software") > /opt/spack-environment/spack.yaml
+RUN mkdir -p /opt/spack-environment && \
+set -o noclobber \
+&&  (echo spack: \
+&&   echo '  specs:' \
+&&   echo '  - cmake' \
+&&   echo '  - sparse' \
+&&   echo '  - catch2' \
+&&   echo '  - openmpi@4.1.6' \
+&&   echo '  - arpack-ng' \
+&&   echo '  - metis~int64' \
+&&   echo '  - parmetis~int64' \
+&&   echo '  - hypre~int64' \
+&&   echo '  - strumpack+scotch~openmp~slate' \
+&&   echo '  - mumps~openmp+metis+parmetis' \
+&&   echo '  - trilinos@15.1.1+amesos+amesos2+aztec+belos+boost~chaco+epetra+epetraext~exodus+explicit_template_instantiation+fortran+hdf5~hypre+ifpack+ml+mpi+muelu+mumps+shared+stratimikos+suite-sparse+superlu-dist+teko+tpetra+piro+nox+tempus+shards+intrepid2+zoltan2+sacado+intrepid+isorropia+strumpack   build_type=Release' \
+&&   echo '    gotype=long_long' \
+&&   echo '  - omega-h build_type=Release' \
+&&   echo '  - petsc~X~batch~cgns~complex~cuda~debug+double~exodusii~fftw~giflib+hdf5~hwloc+hypre~int64~jpeg~knl~libpng~libyaml~memkind+metis~mkl-pardiso~moab~mpfr+mpi+mumps~openmp~p4est+ptscotch~random123~rocm~saws+shared~suite-sparse~superlu-dist~trilinos+strumpack' \
+&&   echo '  - seacas' \
+&&   echo '  concretizer:' \
+&&   echo '    unify: true' \
+&&   echo '  packages:' \
+&&   echo '    all:' \
+&&   echo '      target:' \
+&&   echo '      - x86_64_v3' \
+&&   echo '      providers:' \
+&&   echo '        mpi: [openmpi]' \
+&&   echo '  config:' \
+&&   echo '    install_tree: /opt/software' \
+&&   echo '  view: /opt/views/view') > /opt/spack-environment/spack.yaml
 
 # Install the software, remove unnecessary deps
-RUN cd /opt/spack-environment && \
-    spack env activate . && \
-    spack install --fail-fast
+RUN cd /opt/spack-environment && spack env activate . && spack install --fail-fast
+
+# Install the software, remove unnecessary deps
+RUN mkdir -p /opt/spack-complex-environment && \
+set -o noclobber \
+&&  (echo spack: \
+&&   echo '  specs:' \
+&&   echo '  - cmake' \
+&&   echo '  - sparse' \
+&&   echo '  - catch2' \
+&&   echo '  - openmpi@4.1.6' \
+&&   echo '  - arpack-ng' \
+&&   echo '  - metis~int64' \
+&&   echo '  - parmetis~int64' \
+&&   echo '  - hypre~int64' \
+&&   echo '  - strumpack+scotch~openmp~slate' \
+&&   echo '  - mumps~openmp+metis+parmetis' \
+&&   echo '  - trilinos@15.1.1+amesos+amesos2+aztec+belos+boost~chaco+epetra+epetraext~exodus+explicit_template_instantiation+fortran+hdf5~hypre+ifpack+ml+mpi+muelu+mumps+shared+stratimikos+suite-sparse+superlu-dist+teko+tpetra+piro+nox+tempus+shards+intrepid2+zoltan2+sacado+intrepid+isorropia+strumpack   build_type=Release' \
+&&   echo '    gotype=long_long' \
+&&   echo '  - omega-h build_type=Release' \
+&&   echo '  - petsc~X~batch~cgns+complex~cuda~debug+double~exodusii~fftw~giflib+hdf5~hwloc+hypre~int64~jpeg~knl~libpng~libyaml~memkind+metis~mkl-pardiso~moab~mpfr+mpi+mumps~openmp~p4est+ptscotch~random123~rocm~saws+shared~suite-sparse~superlu-dist~trilinos+strumpack' \
+&&   echo '  - seacas' \
+&&   echo '  concretizer:' \
+&&   echo '    unify: true' \
+&&   echo '  packages:' \
+&&   echo '    all:' \
+&&   echo '      target:' \
+&&   echo '      - x86_64_v3' \
+&&   echo '      providers:' \
+&&   echo '        mpi: [openmpi]' \
+&&   echo '  config:' \
+&&   echo '    install_tree: /opt/software' \
+&&   echo '  view: /opt/views/view-complex') > /opt/spack-complex-environment/spack.yaml
+RUN cd /opt/spack-complex-environment && spack env activate . && spack install --fail-fast && spack gc -y
+
+# This doesn't work, missing indices
+# Strip all the binaries
+#RUN find -L /opt/views/view/* -type f -exec readlink -f '{}' \; | \
+#    xargs file -i | \
+#    grep 'charset=binary' | \
+#    grep 'x-executable\|x-archive\|x-sharedlib' | \
+#    awk -F: '{print $1}' | xargs strip
+#
+#RUN find -L /opt/views/view-complex/* -type f -exec readlink -f '{}' \; | \
+#    xargs file -i | \
+#    grep 'charset=binary' | \
+#    grep 'x-executable\|x-archive\|x-sharedlib' | \
+#    awk -F: '{print $1}' | xargs strip
+
 
 # Modifications to the environment that are necessary to run
 RUN cd /opt/spack-environment && \
-    spack env activate --sh -d . >> /etc/profile.d/z10_spack_environment.sh
+    spack env activate --sh -d . > activate.sh
 
-RUN mkdir /opt/spack-environment-complex \
-&&  (echo "spack:" \
-&&   echo "  specs:" \
-&&   echo "  - cmake" \
-&&   echo "  - sparse" \
-&&   echo "  - catch2" \
-&&   echo "  - openmpi" \
-&&   echo "  - arpack-ng" \
-&&   echo "  - metis~int64" \
-&&   echo "  - parmetis~int64" \
-&&   echo "  - hypre~int64" \
-&&   echo "  - mumps~openmp+metis+parmetis" \
-&&   echo "  - trilinos+amesos+amesos2+aztec+belos+boost~chaco+epetra+epetraext~exodus+explicit_template_instantiation+fortran+hdf5~hypre+ifpack+ml+mpi+muelu+mumps+shared+stratimikos+suite-sparse+superlu-dist+teko+tpetra+piro+nox+tempus+shards+intrepid2+zoltan2+sacado+intrepid build_type=Release gotype=int" \
-&&   echo "  - omega-h build_type=Release" \
-&&   echo "  - petsc~X~batch~cgns+complex~cuda~debug+double~exodusii~fftw~giflib+hdf5~hwloc+hypre~int64~jpeg~knl~libpng~libyaml~memkind+metis~mkl-pardiso~moab~mpfr+mpi+mumps~openmp~p4est+ptscotch~random123~rocm~saws+shared+suite-sparse~superlu-dist~trilinos" \
-&&   echo "  - seacas" \
-&&   echo "  view: /opt/view-complex" \
-&&   echo "  concretizer:" \
-&&   echo "    unify: true" \
-&&   echo "  packages:" \
-&&   echo "    all:" \
-&&   echo "      target:" \
-&&   echo "      - x86_64_v2" \
-&&   echo "      providers:" \
-&&   echo "        blas:" \
-&&   echo "        - netlib-lapack" \
-&&   echo "        lapack:" \
-&&   echo "        - netlib-lapack" \
-&&   echo "  config:" \
-&&   echo "    install_tree: /opt/software") > /opt/spack-environment-complex/spack.yaml
-
-# Install the software, remove unnecessary deps
-RUN cd /opt/spack-environment-complex && \
-    spack env activate . && \
-    spack install --fail-fast && \
-    spack gc -y
-
-# Modifications to the environment that are necessary to run
-RUN cd /opt/spack-environment-complex && \
-    spack env activate --sh -d . >> /opt/activate-complex.sh
+RUN cd /opt/spack-complex-environment && \
+    spack env activate --sh -d . > activate.sh
 
 # Bare OS image to run the installed executables
 FROM ubuntu:22.04
 
 COPY --from=builder /opt/spack-environment /opt/spack-environment
 COPY --from=builder /opt/software /opt/software
-COPY --from=builder /opt/view /opt/view
-COPY --from=builder /opt/view-complex /opt/view-complex
-COPY --from=builder /etc/profile.d/z10_spack_environment.sh /etc/profile.d/z10_spack_environment.sh
-COPY --from=builder /opt/activate-complex.sh /opt/activate-complex.sh
 
-RUN apt-get clean && apt-get update && apt-get install -y locales
-RUN locale-gen en_US.UTF-8  
-ENV LANG en_US.UTF-8  
-ENV LANGUAGE en_US:en  
-ENV LC_ALL en_US.UTF-8
+# paths.view is a symlink, so copy the parent to avoid dereferencing and duplicating it
+COPY --from=builder /opt/views /opt/views
 
-RUN apt-get -yqq update \
- && apt-get -yqq install --no-install-recommends \
-        build-essential \
-        ca-certificates \
-        curl \
-        file \
-        g++ \
-        gdb \
-        valgrind \
-        vim \
-        gcc \
-        gfortran \
-        git \
-        gnupg2 \
-        iproute2 \
-        locales \
-        lua-posix \
-        make \
-        python3 \
-        python3-pip \
-        python3-setuptools \
-        unzip \
-        python3-dev
-RUN apt-get -yqq update && apt-get -yqq upgrade \
- && apt-get -yqq install \
-    bash git build-essential m4 zlib1g-dev libx11-dev gfortran locales wget coreutils curl sudo pkg-config clang-format
-RUN apt-get autoremove -y
-RUN apt-get clean
-RUN rm -rf /var/lib/apt/lists/*
-RUN mkdir /opt/workdir
+RUN apt update
+RUN apt install -y git build-essential m4 zlib1g-dev libx11-dev gfortran pkg-config autoconf python3-dev vim tmux nano gdb valgrind
+RUN apt autoremove && apt clean
+   
 
-RUN echo 'export PATH=/opt/view-complex:$PATH' >>/opt/activate-complex.sh
-RUN echo 'export PETSC_DIR=/opt/view-complex' >>/opt/activate-complex.sh
-RUN echo 'export LD_LIBRARY_PATH=/opt/view-complex/lib:$LD_LIBRARY_PATH' >>/opt/activate-complex.sh
-RUN echo 'export CMAKE_PREFIX_PATH=/opt/view-complex/lib:$CMAKE_PREFIX_PATH' >>/opt/activate-complex.sh
-RUN echo 'export GOMA_LIBS=/opt/view-complex' >>/opt/activate-complex.sh
+RUN { \
+      echo '#!/bin/sh' \
+      && echo '.' /opt/spack-environment/activate.sh \
+      && echo 'exec "$@"'; \
+    } > /entrypoint.sh \
+&& chmod a+x /entrypoint.sh \
+&& ln -s /opt/views/view /opt/view
 
-# user setup
-#ARG USER=goma
-#RUN adduser --disabled-password --gecos '' $USER
-#RUN adduser $USER sudo; echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-#
-#RUN chown -R $USER:$USER /home/$USER
-#USER $USER
-#ENV HOME /home/$USER
-#ENV USER $USER
-#ENV OMPI_MCA_btl "^vader"
-ENV OMPI_MCA_btl_base_warn_component_unuse "0"
-ENV GOMA_LIBS "/opt/view"
-ENV PETSC_DIR "/opt/view"
-ENV PATH "/opt/view/bin:${PATH}"
-ENV LD_LIBRARY_PATH "/opt/view/lib:${LD_LIBRARY_PATH}"
-ENV CMAKE_PREFIX_PATH "/opt/view/lib:${CMAKE_PREFIX_PATH}"
-ENV OMPI_ALLOW_RUN_AS_ROOT 1
-ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM 1
 
-# use /home/goma as goma root
-WORKDIR /opt/workdir
+ENTRYPOINT [ "/entrypoint.sh" ]
+CMD [ "/bin/bash" ]
+
